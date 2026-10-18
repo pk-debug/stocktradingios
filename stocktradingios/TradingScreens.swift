@@ -23,7 +23,7 @@ struct DiscoverView: View {
                             .font(.system(size: 17, weight: .heavy, design: .rounded))
                             .tracking(2.2)
                             .foregroundStyle(TradingStyle.ink)
-                        Text("INVESTING, MADE CLEAR")
+                        Text("INDIA, IN FOCUS")
                             .font(.system(size: 9, weight: .medium))
                             .tracking(1.8)
                             .foregroundStyle(TradingStyle.muted)
@@ -39,7 +39,7 @@ struct DiscoverView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("YOUR MARKET, IN FOCUS")
+                    Text("INDIAN MARKETS, IN FOCUS")
                         .font(.system(size: 10, weight: .heavy))
                         .tracking(1.5)
                         .foregroundStyle(TradingStyle.green)
@@ -47,7 +47,7 @@ struct DiscoverView: View {
                         .font(.system(size: 30, weight: .bold))
                         .tracking(-0.8)
                         .foregroundStyle(TradingStyle.ink)
-                    Text("Explore the market at your own pace.")
+                    Text("Explore Indian stocks at your own pace.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color(red: 114 / 255, green: 123 / 255, blue: 117 / 255))
                 }
@@ -55,12 +55,12 @@ struct DiscoverView: View {
                 .padding(.bottom, 21)
 
                 accountCard
-                sectionHeading("Market snapshot", subtitle: "Illustrative index values, not live quotes", trailing: "SAMPLE")
+                sectionHeading("Market snapshot", subtitle: "Illustrative Indian index values", trailing: "DEMO")
                     .padding(.top, 29)
                     .padding(.bottom, 12)
                 indexCard
 
-                sectionHeading("Watchlist", subtitle: "Tap a company to explore", trailing: "\(viewModel.filteredAssets.count) ASSETS")
+                sectionHeading("Popular stocks", subtitle: "NSE sample companies · tap to explore", trailing: "\(viewModel.filteredAssets.count) STOCKS")
                     .padding(.top, 29)
                     .padding(.bottom, 12)
 
@@ -72,7 +72,7 @@ struct DiscoverView: View {
                         .font(.system(size: 13))
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                        .accessibilityLabel("Search stocks")
+                        .accessibilityLabel("Search Indian stocks")
                 }
                 .padding(.horizontal, 13)
                 .frame(height: 46)
@@ -100,7 +100,7 @@ struct DiscoverView: View {
                 .padding(.horizontal, 14)
                 .background(.white, in: RoundedRectangle(cornerRadius: 15))
 
-                Text("Learning demo only. Prices are hard-coded examples; nothing here is investment advice or a real order.")
+                Text("Learning demo only. These India-market examples are not live prices, investment advice, or real orders.")
                     .font(.system(size: 10))
                     .foregroundStyle(TradingStyle.muted)
                     .lineSpacing(3)
@@ -122,18 +122,18 @@ struct DiscoverView: View {
                     .tracking(1.1)
                     .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
                 Spacer()
-                Text("SAMPLE PORTFOLIO")
+                Text("INDIA SAMPLE PORTFOLIO")
                     .font(.system(size: 9))
                     .tracking(0.8)
                     .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
             }
-            Text(currency(trading.cash + viewModel.positionsValue(for: trading.positions)))
+            Text(DemoMoney.format(trading.cash + viewModel.positionsValue(for: trading.positions)))
                 .font(.system(size: 30, weight: .bold))
                 .tracking(-0.6)
                 .foregroundStyle(.white)
                 .padding(.top, 12)
             HStack {
-                Text("\(currency(trading.cash)) available to simulate")
+                Text("\(DemoMoney.format(trading.cash)) available to simulate")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 208 / 255, green: 224 / 255, blue: 215 / 255))
                 Spacer()
@@ -227,7 +227,7 @@ private struct AssetRow: View {
                 .accessibilityLabel("Sample price trend chart")
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(currency(asset.price))
+                Text(DemoMoney.format(asset.price))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(TradingStyle.ink)
                 Text("\(asset.isPositive ? "+" : "")\(asset.changePercent, specifier: "%.2f")%")
@@ -298,12 +298,12 @@ private struct AssetDetailView: View {
                 }
                 .padding(.top, 18)
 
-                Text(currency(asset.price))
+                Text(DemoMoney.format(asset.price))
                     .font(.system(size: 34, weight: .bold))
                     .tracking(-0.7)
                     .foregroundStyle(TradingStyle.ink)
                     .padding(.top, 22)
-                Text("\(asset.change >= 0 ? "+" : "")\(currency(abs(asset.change))) (\(asset.changePercent >= 0 ? "+" : "")\(asset.changePercent, specifier: "%.2f")%) today")
+                Text("\(asset.change >= 0 ? "+" : "-")\(DemoMoney.format(abs(asset.change))) (\(asset.changePercent >= 0 ? "+" : "")\(asset.changePercent, specifier: "%.2f")%) today")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(asset.trendColor)
                     .padding(.top, 4)
@@ -475,12 +475,12 @@ private struct OrderTicketView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(TradingStyle.secondary)
                 Spacer()
-                Text(currency(estimatedTotal))
+                Text(DemoMoney.format(estimatedTotal))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(TradingStyle.ink)
             }
             .padding(.top, 14)
-            Text("\(quantity) share(s) x sample quote \(currency(asset.price)). No fees in this demo.")
+            Text("\(quantity) share(s) x sample quote \(DemoMoney.format(asset.price)). No fees in this demo.")
                 .font(.system(size: 10))
                 .foregroundStyle(TradingStyle.muted)
                 .padding(.top, 5)
@@ -610,7 +610,7 @@ struct PortfolioView: View {
                 .font(.system(size: 10, weight: .bold))
                 .tracking(1)
                 .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-            Text(currency(trading.cash + marketValue))
+            Text(DemoMoney.format(trading.cash + marketValue))
                 .font(.system(size: 29, weight: .bold))
                 .tracking(-0.5)
                 .foregroundStyle(.white)
@@ -685,7 +685,7 @@ struct PortfolioView: View {
             Text(title)
                 .font(.system(size: 11))
                 .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-            Text(currency(value))
+            Text(DemoMoney.format(value))
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.white)
         }
@@ -701,13 +701,13 @@ struct PortfolioView: View {
                     Text(position.symbol)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(TradingStyle.ink)
-                    Text("\(position.quantity) shares at \(currency(position.averageCost)) avg.")
+                    Text("\(position.quantity) shares at \(DemoMoney.format(position.averageCost)) avg.")
                         .font(.system(size: 11))
                         .foregroundStyle(TradingStyle.secondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(currency(value))
+                    Text(DemoMoney.format(value))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(TradingStyle.ink)
                     Text(signedCurrency(gain))
@@ -818,14 +818,14 @@ struct ActivityView: View {
                     Text("\(order.quantity) \(order.symbol)")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                    Text("\(MarketData.asset(for: order.symbol)?.companyName ?? "Sample asset") · \(currency(order.price)) per share")
+                    Text("\(MarketData.asset(for: order.symbol)?.companyName ?? "Sample asset") · \(DemoMoney.format(order.price)) per share")
                         .font(.system(size: 10))
                         .foregroundStyle(TradingStyle.secondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(currency(order.total))
+                    Text(DemoMoney.format(order.total))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
                     Text("SIMULATED")
@@ -863,11 +863,7 @@ private func pageHeading(eyebrow: String, title: String, subtitle: String) -> so
     }
 }
 
-private func currency(_ amount: Double) -> String {
-    amount.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US")))
-}
-
 /// Formats a currency amount with a leading sign for gains and losses.
 private func signedCurrency(_ amount: Double) -> String {
-    "\(amount >= 0 ? "+" : "-")\(currency(abs(amount)))"
+    "\(amount >= 0 ? "+" : "-")\(DemoMoney.format(abs(amount)))"
 }
