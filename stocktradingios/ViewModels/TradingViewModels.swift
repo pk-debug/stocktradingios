@@ -1,6 +1,24 @@
 import Combine
 import Foundation
 
+/// Formats demo balances and order values using Indian rupees and grouping.
+enum DemoMoney {
+    private static let numberFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale(identifier: "en_IN")
+        formatter.currencyCode = "INR"
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter
+    }()
+
+    /// Returns a localized rupee string, including two decimal places.
+    static func format(_ amount: Double) -> String {
+        numberFormatter.string(from: NSNumber(value: amount)) ?? "INR \(amount)"
+    }
+}
+
 /// Holds Discover screen input and performs ticker/company-name filtering.
 @MainActor
 final class DiscoverViewModel: ObservableObject {
