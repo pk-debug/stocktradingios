@@ -14,17 +14,17 @@ struct stocktradingiosTests {
     func buyingSharesUpdatesCashPositionAverageCostAndActivity() {
         let store = TradingStore()
 
-        let result = store.placeOrder(symbol: "AAPL", side: .buy, quantity: 1)
+        let result = store.placeOrder(symbol: "RELIANCE", side: .buy, quantity: 1)
 
-        #expect(store.cash == 12_221.13)
-        #expect(store.positions.first(where: { $0.symbol == "AAPL" })?.quantity == 5)
-        #expect(abs((store.positions.first(where: { $0.symbol == "AAPL" })?.averageCost ?? 0) - 191.734) < 0.001)
+        #expect(store.cash == 998_715.50)
+        #expect(store.positions.first(where: { $0.symbol == "RELIANCE" })?.quantity == 9)
+        #expect(abs((store.positions.first(where: { $0.symbol == "RELIANCE" })?.averageCost ?? 0) - 1_218.50) < 0.001)
         #expect(store.orders.count == 1)
         if case .accepted(let order) = result {
-            #expect(order.symbol == "AAPL")
+            #expect(order.symbol == "RELIANCE")
             #expect(order.quantity == 1)
             #expect(order.side == .buy)
-            #expect(order.total == 228.87)
+            #expect(order.total == 1_284.50)
         } else {
             Issue.record("A valid buy order should be accepted.")
         }
@@ -34,10 +34,10 @@ struct stocktradingiosTests {
     func sellingSharesCreditsCashAndRemovesEmptyPosition() {
         let store = TradingStore()
 
-        let result = store.placeOrder(symbol: "VOO", side: .sell, quantity: 3)
+        let result = store.placeOrder(symbol: "HDFCBANK", side: .sell, quantity: 12)
 
-        #expect(store.cash == 14_029.26)
-        #expect(store.positions.first(where: { $0.symbol == "VOO" }) == nil)
+        #expect(store.cash == 1_021_220.80)
+        #expect(store.positions.first(where: { $0.symbol == "HDFCBANK" }) == nil)
         #expect(store.orders.count == 1)
         if case .accepted = result {
         } else {
@@ -51,9 +51,9 @@ struct stocktradingiosTests {
         let originalCash = store.cash
         let originalPositions = store.positions
 
-        let insufficientCash = store.placeOrder(symbol: "VOO", side: .buy, quantity: 100)
-        let insufficientShares = store.placeOrder(symbol: "TSLA", side: .sell, quantity: 1)
-        let zeroQuantity = store.placeOrder(symbol: "AAPL", side: .buy, quantity: 0)
+        let insufficientCash = store.placeOrder(symbol: "TCS", side: .buy, quantity: 300)
+        let insufficientShares = store.placeOrder(symbol: "TATAMOTORS", side: .sell, quantity: 1)
+        let zeroQuantity = store.placeOrder(symbol: "RELIANCE", side: .buy, quantity: 0)
         let unavailableAsset = store.placeOrder(symbol: "UNKNOWN", side: .buy, quantity: 1)
 
         #expect(store.cash == originalCash)
@@ -87,11 +87,11 @@ struct stocktradingiosTests {
 
         #expect(viewModel.filteredAssets.count == 7)
 
-        viewModel.searchText = "apple"
-        #expect(viewModel.filteredAssets.map(\.symbol) == ["AAPL"])
+        viewModel.searchText = "reliance"
+        #expect(viewModel.filteredAssets.map(\.symbol) == ["RELIANCE"])
 
-        viewModel.searchText = "nv"
-        #expect(viewModel.filteredAssets.map(\.symbol) == ["NVDA"])
+        viewModel.searchText = "hdfc"
+        #expect(viewModel.filteredAssets.map(\.symbol) == ["HDFCBANK"])
 
         viewModel.searchText = "no matching asset"
         #expect(viewModel.filteredAssets.isEmpty)
@@ -104,8 +104,14 @@ struct stocktradingiosTests {
         let marketValue = viewModel.marketValue(for: store.positions)
         let investedValue = viewModel.investedValue(for: store.positions)
 
-        #expect(abs(marketValue - 3_353.08) < 0.001)
-        #expect(abs(investedValue - 3_016.5) < 0.001)
-        #expect(abs(marketValue - investedValue - 336.58) < 0.001)
+        #expect(abs(marketValue - 41_945.05) < 0.001)
+        #expect(abs(investedValue - 39_631.00) < 0.001)
+        #expect(abs(marketValue - investedValue - 2_314.05) < 0.001)
+    }
+
+    @Test
+    func demoMoneyUsesIndianRupees() {
+        #expect(DemoMoney.format(1_000_000).contains("₹"))
+        #expect(!DemoMoney.format(1_000_000).contains("$"))
     }
 }

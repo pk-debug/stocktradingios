@@ -1,6 +1,6 @@
 # Northstar iOS
 
-Northstar is a small sample investing app built with native SwiftUI. It is a learning project: the prices are examples, and buying or selling only changes a temporary demo account inside the app.
+Northstar is a small Indian-market investing demo built with native SwiftUI. It is a learning project: the stock prices and index values are illustrative examples, and buying or selling only changes a temporary demo account inside the app.
 
 ## If you just want to try the app
 
@@ -9,14 +9,14 @@ Northstar is a small sample investing app built with native SwiftUI. It is a lea
 3. Press **Run** (the triangle button).
 4. Try the **Discover**, **Portfolio**, and **Activity** tabs.
 
-You can search for a company or ticker, open an asset to see its sample chart, and simulate a whole-share buy or sale. Accepted orders update the demo cash and holdings and appear in Activity. The app starts with **$12,450** of sample cash and three example holdings.
+You can search Indian companies and tickers, see sample NIFTY 50, Sensex, and Bank Nifty values, open a stock to view its chart, and simulate a whole-share buy or sale. Accepted orders update the demo cash and holdings and appear in Activity. The app starts with **₹10,00,000** of sample cash and three example holdings.
 
-> **Demo only:** Nothing is sent to a broker or stock exchange, no real money moves, and these examples are not investment advice. The account and order history live in app memory and reset when the app is restarted.
+> **Demo only:** Quotes are invented sample values, not live or historical market data. Nothing is sent to a broker or stock exchange, no real money moves, and this app is not investment advice. The account and order history live in app memory and reset when the app is restarted.
 
 ## What the screens do
 
-- **Discover** shows the sample account value, illustrative market indexes, and a searchable list of example stocks and an ETF.
-- **Asset details** shows a hard-coded quote, a simple sample trend chart, company category, and the simulated order ticket.
+- **Discover** shows the sample account value, illustrative Indian market indexes, and a searchable list of NSE example stocks.
+- **Asset details** shows a sample INR quote, a simple sample trend chart, company category, exchange, and the simulated order ticket.
 - **Portfolio** shows cash, sample market value, estimated unrealized gain or loss, and the positions in the demo account.
 - **Activity** lists the simulated orders or explains what will appear there after the first order.
 
@@ -65,8 +65,8 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-The project currently targets **iOS 26.5 or later**, matching the simulator configuration used for development.
+The project currently targets **iOS 26.5 or later**, matching the simulator configuration used for development. Example Indian share prices are denominated in INR.
 
 ## Project limits and next steps
 
-This is a local learning demo, not a financial product. Quotes and index values are fixed examples. Orders are not persisted and do not execute outside the app. A production app would need a trusted backend for market data and account records, strong authentication, real order validation and auditing, and appropriate legal and compliance review.
+This is a local learning demo, not a financial product. Stock quotes and index values are fixed illustrative examples and must not be used for real financial decisions. Orders are not persisted and do not execute outside the app. A production app would need a trusted backend for verified market data and account records, strong authentication, real order validation and auditing, and appropriate legal and compliance review.
