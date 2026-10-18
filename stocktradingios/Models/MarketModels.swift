@@ -64,53 +64,53 @@ enum OrderResult {
 enum MarketData {
     static let assets = [
         MarketAsset(
-            symbol: "AAPL", companyName: "Apple Inc.", exchange: "NASDAQ",
-            price: 228.87, change: 2.41, changePercent: 1.06,
-            history: [24, 36, 29, 48, 42, 60, 54, 71, 64, 84, 76, 96],
-            category: "Technology"
+            symbol: "RELIANCE", companyName: "Reliance Industries", exchange: "NSE",
+            price: 1_284.50, change: 12.35, changePercent: 0.97,
+            history: [34, 41, 38, 52, 47, 63, 58, 69, 64, 82, 77, 94],
+            category: "Energy & Retail"
         ),
         MarketAsset(
-            symbol: "MSFT", companyName: "Microsoft Corporation", exchange: "NASDAQ",
-            price: 429.17, change: 3.28, changePercent: 0.77,
-            history: [32, 27, 39, 35, 55, 49, 63, 58, 70, 66, 83, 91],
-            category: "Technology"
+            symbol: "TCS", companyName: "Tata Consultancy Services", exchange: "NSE",
+            price: 3_482.75, change: 24.50, changePercent: 0.71,
+            history: [30, 36, 34, 48, 45, 61, 55, 68, 64, 78, 74, 92],
+            category: "Information Technology"
         ),
         MarketAsset(
-            symbol: "NVDA", companyName: "NVIDIA Corporation", exchange: "NASDAQ",
-            price: 138.85, change: -1.22, changePercent: -0.87,
-            history: [89, 78, 86, 68, 73, 58, 66, 49, 55, 38, 44, 28],
-            category: "Semiconductors"
+            symbol: "HDFCBANK", companyName: "HDFC Bank", exchange: "NSE",
+            price: 1_768.40, change: -8.20, changePercent: -0.46,
+            history: [88, 80, 84, 70, 75, 61, 66, 51, 57, 43, 48, 35],
+            category: "Banking"
         ),
         MarketAsset(
-            symbol: "AMZN", companyName: "Amazon.com, Inc.", exchange: "NASDAQ",
-            price: 187.83, change: 0.96, changePercent: 0.51,
-            history: [25, 32, 28, 44, 39, 52, 48, 63, 61, 75, 69, 88],
-            category: "Consumer"
+            symbol: "INFY", companyName: "Infosys", exchange: "NSE",
+            price: 1_482.60, change: 5.35, changePercent: 0.36,
+            history: [31, 39, 35, 49, 46, 58, 55, 67, 63, 76, 73, 90],
+            category: "Information Technology"
         ),
         MarketAsset(
-            symbol: "GOOGL", companyName: "Alphabet Inc.", exchange: "NASDAQ",
-            price: 165.27, change: -0.54, changePercent: -0.33,
-            history: [85, 75, 80, 62, 69, 58, 64, 48, 56, 43, 49, 37],
-            category: "Communication"
+            symbol: "ICICIBANK", companyName: "ICICI Bank", exchange: "NSE",
+            price: 1_298.25, change: 7.25, changePercent: 0.56,
+            history: [27, 33, 30, 45, 41, 54, 51, 66, 60, 75, 72, 89],
+            category: "Banking"
         ),
         MarketAsset(
-            symbol: "VOO", companyName: "Vanguard S&P 500 ETF", exchange: "NYSE ARCA",
-            price: 526.42, change: 1.87, changePercent: 0.36,
-            history: [27, 36, 34, 44, 48, 45, 57, 62, 59, 76, 81, 93],
-            category: "ETF"
+            symbol: "ITC", companyName: "ITC Limited", exchange: "NSE",
+            price: 438.90, change: -2.10, changePercent: -0.48,
+            history: [82, 77, 80, 68, 71, 61, 65, 53, 58, 47, 50, 39],
+            category: "Consumer Goods"
         ),
         MarketAsset(
-            symbol: "TSLA", companyName: "Tesla, Inc.", exchange: "NASDAQ",
-            price: 249.98, change: -4.76, changePercent: -1.87,
-            history: [91, 78, 85, 64, 72, 51, 63, 40, 48, 32, 38, 20],
+            symbol: "TATAMOTORS", companyName: "Tata Motors", exchange: "NSE",
+            price: 728.15, change: 10.80, changePercent: 1.51,
+            history: [24, 31, 29, 44, 41, 57, 53, 66, 62, 78, 73, 93],
             category: "Automotive"
         )
     ]
 
     static let indexes = [
-        MarketIndex(name: "S&P 500", value: "5,842.47", change: "+0.42%", isPositive: true),
-        MarketIndex(name: "NASDAQ", value: "18,421.36", change: "+0.68%", isPositive: true),
-        MarketIndex(name: "DOW", value: "43,275.91", change: "-0.13%", isPositive: false)
+        MarketIndex(name: "NIFTY 50", value: "24,854.05", change: "+0.62%", isPositive: true),
+        MarketIndex(name: "SENSEX", value: "81,330.56", change: "+0.48%", isPositive: true),
+        MarketIndex(name: "BANK NIFTY", value: "56,214.30", change: "-0.21%", isPositive: false)
     ]
 
     /// Finds an asset without requiring callers to normalize ticker case.
