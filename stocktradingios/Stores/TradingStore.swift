@@ -11,14 +11,13 @@ final class TradingStore: ObservableObject {
     @Published private(set) var positions: [Position]
     @Published private(set) var orders: [SimulatedOrder] = []
 
-    /// Creates a demo account with the same starting cash and positions as the
-    /// companion learning apps.
+    /// Creates the Indian-market demo account with its sample cash and holdings.
     init(
-        cash: Double = 12_450,
+        cash: Double = 1_000_000,
         positions: [Position] = [
-            Position(symbol: "AAPL", quantity: 4, averageCost: 182.45),
-            Position(symbol: "MSFT", quantity: 2, averageCost: 402.20),
-            Position(symbol: "VOO", quantity: 3, averageCost: 494.10)
+            Position(symbol: "RELIANCE", quantity: 8, averageCost: 1_210.25),
+            Position(symbol: "TCS", quantity: 3, averageCost: 3_220.00),
+            Position(symbol: "HDFCBANK", quantity: 12, averageCost: 1_690.75)
         ]
     ) {
         self.cash = cash
