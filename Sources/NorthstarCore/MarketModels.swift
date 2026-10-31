@@ -1,68 +1,77 @@
 import Foundation
 
 /// A hard-coded sample quote shown in the learning app.
-struct MarketAsset: Identifiable, Equatable {
-    let symbol: String
-    let companyName: String
-    let exchange: String
-    let price: Double
-    let change: Double
-    let changePercent: Double
-    let history: [Double]
-    let category: String
+public struct MarketAsset: Identifiable, Equatable, Codable, Sendable {
+    public let symbol: String
+    public let companyName: String
+    public let exchange: String
+    public let price: Double
+    public let change: Double
+    public let changePercent: Double
+    public let history: [Double]
+    public let category: String
 
-    var id: String { symbol }
-    var isPositive: Bool { changePercent >= 0 }
+    public var id: String { symbol }
+    public var isPositive: Bool { changePercent >= 0 }
 }
 
 /// One illustrative index entry displayed on the Discover screen.
-struct MarketIndex: Identifiable {
-    let name: String
-    let value: String
-    let change: String
-    let isPositive: Bool
+public struct MarketIndex: Identifiable, Codable, Sendable {
+    public let name: String
+    public let value: String
+    public let change: String
+    public let isPositive: Bool
 
-    var id: String { name }
+    public var id: String { name }
 }
 
 /// The number of shares held and the average demo purchase price per share.
-struct Position: Identifiable, Equatable {
-    let symbol: String
-    var quantity: Int
-    var averageCost: Double
+public struct Position: Identifiable, Equatable, Codable, Sendable {
+    public let symbol: String
+    public var quantity: Int
+    public var averageCost: Double
 
-    var id: String { symbol }
+    public init(symbol: String, quantity: Int, averageCost: Double) {
+        self.symbol = symbol; self.quantity = quantity; self.averageCost = averageCost
+    }
+
+    public var id: String { symbol }
 }
 
 /// The direction of a local, simulated order.
-enum OrderSide: String, Identifiable {
+public enum OrderSide: String, Identifiable, Codable, Sendable {
     case buy = "BUY"
     case sell = "SELL"
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 }
 
-/// A completed simulated order kept only in the app's current memory.
-struct SimulatedOrder: Identifiable {
-    let id: UUID
-    let symbol: String
-    let side: OrderSide
-    let quantity: Int
-    let price: Double
-    let createdAt: Date
+/// A completed paper order, persisted locally or returned by the API snapshot.
+public struct SimulatedOrder: Identifiable, Codable, Equatable, Sendable {
+    public let id: UUID
+    public let symbol: String
+    public let side: OrderSide
+    public let quantity: Int
+    public let price: Double
+    public let createdAt: Date
 
-    var total: Double { price * Double(quantity) }
+    public init(id: UUID = UUID(), symbol: String, side: OrderSide, quantity: Int, price: Double, createdAt: Date = Date()) {
+        self.id = id; self.symbol = symbol; self.side = side; self.quantity = quantity
+        self.price = price; self.createdAt = createdAt
+    }
+
+    public var total: Double { price * Double(quantity) }
 }
 
 /// The accepted order or user-readable reason an order was rejected.
-enum OrderResult {
+public enum OrderResult {
     case accepted(SimulatedOrder)
     case rejected(String)
 }
 
 /// Deterministic sample market data; these are not live financial quotes.
-enum MarketData {
-    static let assets = [
+public enum MarketData {
+    public static let assets = [
         MarketAsset(
             symbol: "RELIANCE", companyName: "Reliance Industries", exchange: "NSE",
             price: 1_284.50, change: 12.35, changePercent: 0.97,
@@ -107,14 +116,14 @@ enum MarketData {
         )
     ]
 
-    static let indexes = [
+    public static let indexes = [
         MarketIndex(name: "NIFTY 50", value: "24,854.05", change: "+0.62%", isPositive: true),
         MarketIndex(name: "SENSEX", value: "81,330.56", change: "+0.48%", isPositive: true),
         MarketIndex(name: "BANK NIFTY", value: "56,214.30", change: "-0.21%", isPositive: false)
     ]
 
     /// Finds an asset without requiring callers to normalize ticker case.
-    static func asset(for symbol: String) -> MarketAsset? {
+    public static func asset(for symbol: String) -> MarketAsset? {
         assets.first { $0.symbol == symbol.uppercased() }
     }
 }

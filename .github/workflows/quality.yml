@@ -1,0 +1,75 @@
+name: Native iOS quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  core-and-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.1.3'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Checkout matching reference backend
+        uses: actions/checkout@v4
+        with:
+          repository: pk-debug/northstar-backend-lab
+          ref: 7bac27ca60fe799a40ec9a11bec7b04d8ff78317
+          path: .backend
+      - run: pip install -r .backend/paper-trading-api/requirements.lock
+      - name: Start disposable backend and test real Swift HTTP client
+        shell: bash
+        run: |
+          set -euo pipefail
+          NORTHSTAR_DB="$RUNNER_TEMP/northstar.sqlite3" uvicorn app.main:app --app-dir .backend/paper-trading-api --host 127.0.0.1 --port 8000 --no-access-log > "$RUNNER_TEMP/backend.log" 2>&1 &
+          backend_pid=$!
+          trap 'kill "$backend_pid" || true' EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2) as response:
+                      assert response.status == 200
+                      break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Backend did not become healthy')
+          PY
+          NORTHSTAR_TEST_API=http://127.0.0.1:8000 swift test --parallel
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core
+        run: swift test
+      - name: Select an installed iPhone simulator
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json, subprocess
+          data = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))
+          devices = [d for runtime, group in data['devices'].items() if 'iOS' in runtime for d in group if 'iPhone' in d['name']]
+          assert devices, 'No installed iPhone simulator'
+          print('SIMULATOR_ID=' + devices[0]['udid'])
+          PY
+      - name: Build and run iOS integration and UI tests
+        run: >-
+          xcodebuild test -project stocktradingios.xcodeproj
+          -scheme stocktradingios -destination "platform=iOS Simulator,id=$SIMULATOR_ID"
+          -parallel-testing-enabled NO -resultBundlePath TestResults.xcresult
+          CODE_SIGNING_ALLOWED=NO
+      - name: Build release for generic iOS device
+        run: >-
+          xcodebuild build -project stocktradingios.xcodeproj -scheme stocktradingios
+          -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-test-results
+          path: TestResults.xcresult

@@ -1,0 +1,15 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Discover" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Discover" } } } },
+    "Watchlist" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Watchlist" } } } },
+    "Portfolio" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Portfolio" } } } },
+    "Activity" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Activity" } } } },
+    "Account" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Account" } } } },
+    "Enter offline demo" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter offline demo" } } } },
+    "Review order" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Review order" } } } },
+    "Cancel" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } } } },
+    "Sign out" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign out" } } } }
+  },
+  "version" : "1.0"
+}

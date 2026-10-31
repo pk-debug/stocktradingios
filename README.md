@@ -1,72 +1,52 @@
-# Northstar iOS
+# Northstar — native SwiftUI paper trading
 
-Northstar is a small Indian-market investing demo built with native SwiftUI. It is a learning project: the stock prices and index values are illustrative examples, and buying or selling only changes a temporary demo account inside the app.
+A native iOS learning and interview project, porting the implemented product scope of [kmpNativeUiTrading](https://github.com/pk-debug/kmpNativeUiTrading/tree/eab65359c530f02a387c327e8b2921d47f41d10c) into Swift. SwiftUI renders the screens; a Swift 6 package owns domain rules, persistence and the same authenticated Northstar **v2** API contract.
 
-## If you just want to try the app
+**All prices are synthetic and all money is virtual. No live quotes, real brokerage, deposits or real-money orders.** This is a paper-trading app, not an App Store-ready financial service.
 
-1. Open `stocktradingios.xcodeproj` in Xcode.
-2. Pick the `stocktradingios` scheme and an iPhone simulator.
-3. Press **Run** (the triangle button).
-4. Try the **Discover**, **Portfolio**, and **Activity** tabs.
+## Run on iPhone or iPad
 
-You can search Indian companies and tickers, see sample NIFTY 50, Sensex, and Bank Nifty values, open a stock to view its chart, and simulate a whole-share buy or sale. Accepted orders update the demo cash and holdings and appear in Activity. The app starts with **₹10,00,000** of sample cash and three example holdings.
+Open `stocktradingios.xcodeproj` using Xcode 16+ with Swift 6 and an iOS 18+ SDK/simulator. Choose the shared `stocktradingios` scheme and run. The previous iOS 26.5 deployment target is now **iOS 18.0** to support more devices. Choose your own development team for a physical device.
 
-> **Demo only:** Quotes are invented sample values, not live or historical market data. Nothing is sent to a broker or stock exchange, no real money moves, and this app is not investment advice. The account and order history live in app memory and reset when the app is restarted.
+Choose **Enter offline demo** for ₹10 lakh and three example holdings. Accepted orders, holdings and the watchlist survive restart in the app sandbox. No signup or password is required. Signing out hides the account without deleting the device-local ledger.
 
-## What the screens do
+For **API paper accounts**, configure the app target's user-defined build setting `NORTHSTAR_API_ORIGIN` with your deployed HTTPS origin, for example `https://api.your-domain.com`. It is copied into the generated Info.plist. In an xcconfig, write `https:/$()/api.your-domain.com` because `//` starts a comment. There is no deployed API URL in the reference repository and none is invented here. An unset origin leaves offline mode available; a configured origin adds signup/sign-in. Each API account starts with ₹10 lakh and **no holdings**. Tokens and passwords are never saved; restarting requires signing in again.
 
-- **Discover** shows the sample account value, illustrative Indian market indexes, and a searchable list of NSE example stocks.
-- **Asset details** shows a sample INR quote, a simple sample trend chart, company category, exchange, and the simulated order ticket.
-- **Portfolio** shows cash, sample market value, estimated unrealized gain or loss, and the positions in the demo account.
-- **Activity** lists the simulated orders or explains what will appear there after the first order.
+Debug builds default to `http://localhost:8000` for iOS Simulator testing against the local server. Start the backend using [API.md](docs/API.md); the simulator uses your Mac’s loopback. Debug permits HTTP only for `localhost` and `127.0.0.1`, with `NSAllowsLocalNetworking` in a Debug-only plist. Release does not use that plist, has no HTTP exception and requires HTTPS for API accounts. Leave the Release origin unset for offline-only mode until hosting is ready.
 
-## How the project is organized
+## Implemented features
 
-The app uses a lightweight **MVVM + shared store** approach. SwiftUI views describe what appears on screen; view models handle screen-specific presentation calculations; and one observable store owns the account state and order rules. Keeping the order rules in the store means each screen displays the same account.
+- Discover: company/ticker search, sector filtering, alphabetical/gainer/loser sorting, seven sample stocks and three indexes.
+- Asset details: synthetic quote, sector/exchange, illustrative accessible chart, owned quantity and watchlist control.
+- Watchlist: persistent offline or isolated server-backed add/remove.
+- Orders: whole-share paper buys/sells, integer-paise affordability and cash preview, edit/review/confirm flow, server-authoritative API pricing and rejection.
+- Reliability: durable account-and-origin-scoped UUID journal, explicit retry after an uncertain result or restart, new-order blocking while unresolved. No silent background order queue.
+- Portfolio: cash, holdings, average cost, invested/market value and unrealized P/L. Activity shows completed orders (API: latest 500).
+- Account: offline entry, API registration/login, expiring sessions, sign out and destructive confirmation for permanent API account deletion.
+- Learning: expandable lessons on market orders, diversification and costs. Privacy and demo limitations are available before signup.
+- Native foundation: semantic colors, Dynamic Type, native navigation/forms, SF Symbols, adaptable rows, VoiceOver descriptions, sandbox file protection, app-switcher privacy cover, icon, privacy manifest and CI definitions.
 
-In everyday terms:
+See the [feature parity map](docs/FEATURES.md), [API setup](docs/API.md), [Swift architecture and Android/Flutter learning guide](docs/ARCHITECTURE.md), [validation evidence](docs/VALIDATION.md), and [release gates](docs/RELEASE.md).
 
-- A **model** describes information, such as a stock quote or a holding.
-- A **view** draws the screen and connects buttons and text fields to app state.
-- A **view model** prepares information a screen needs, such as matching search results or portfolio totals.
-- The **store** is the shared demo account ledger. It checks an order before it updates cash, holdings, and activity.
+## Test
 
-The order path is: tap **Simulate buy/sell** → enter a whole number of shares → the store checks the sample asset, available cash or shares, and quantity → the screen shows a clear result. Rejected orders leave the account unchanged.
-
-```text
-stocktradingios/
-  ContentView.swift                   App entry screen and shared tab/store setup
-  Models/MarketModels.swift           Asset, index, position, and order data
-  Stores/TradingStore.swift           Demo cash, holdings, validation, and order updates
-  ViewModels/TradingViewModels.swift  Search and portfolio display calculations
-  TradingScreens.swift                Discover, details, portfolio, and activity UI
-  TradingStyle.swift                  Shared colors for the SwiftUI screens
-stocktradingiosTests/
-  stocktradingiosTests.swift          Tests for simulated-order behavior
-```
-
-### A simple way to follow the code
-
-1. Start at `stocktradingios/ContentView.swift` to see how the tabs share one `TradingStore`.
-2. Read `stocktradingios/Models/MarketModels.swift` for the data shapes and sample stock list.
-3. Read `stocktradingios/TradingScreens.swift` to see what each screen displays and which user actions it offers.
-4. Follow a buy or sell button to `stocktradingios/Stores/TradingStore.swift`. The store validates the order before changing cash, positions, or activity.
-5. Look at `stocktradingios/ViewModels/TradingViewModels.swift` for search and portfolio calculations.
-6. Read `stocktradingiosTests/stocktradingiosTests.swift` for examples of accepted and rejected orders.
-
-## Build and test
-
-Open the project in Xcode and run the `stocktradingios` scheme on an iOS simulator or device. From Terminal, you can build and run the tests on an installed iOS simulator with:
+The core has no third-party dependencies and runs on Linux or macOS:
 
 ```sh
-xcodebuild test \
-  -project stocktradingios.xcodeproj \
-  -scheme stocktradingios \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+swift test
 ```
 
-The project currently targets **iOS 26.5 or later**, matching the simulator configuration used for development. Example Indian share prices are denominated in INR.
+Without `NORTHSTAR_TEST_API`, the real HTTP contract test is explicitly **skipped**; the other tests still run. To exercise the actual server contract, start the disposable backend described in [API.md](docs/API.md), then run:
 
-## Project limits and next steps
+```sh
+NORTHSTAR_TEST_API=http://127.0.0.1:8000 swift test
+```
 
-This is a local learning demo, not a financial product. Stock quotes and index values are fixed illustrative examples and must not be used for real financial decisions. Orders are not persisted and do not execute outside the app. A production app would need a trusted backend for verified market data and account records, strong authentication, real order validation and auditing, and appropriate legal and compliance review.
+On macOS, choose an installed compatible simulator (`xcrun simctl list devices available`) and run:
+
+```sh
+xcodebuild test -project stocktradingios.xcodeproj -scheme stocktradingios \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+```
+
+The repository includes presentation tests and UI journeys for review/confirmation, persistence, watchlist empty states and accessibility-sized navigation. Linux cannot compile SwiftUI or run the simulator; those checks remain a required macOS gate. CI is added but has not been executed in GitHub from this workspace.

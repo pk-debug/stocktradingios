@@ -1,869 +1,397 @@
-//
-//  TradingScreens.swift
-//  stocktradingios
-//
-//  Created by Pawan Kumar on 16/10/26.
-//
-
 import SwiftUI
+import NorthstarCore
 
-// Screen-level views and reusable screen components.
+struct LoginView: View {
+    @EnvironmentObject private var trading: TradingStore
+    @State private var username = ""
+    @State private var password = ""
+    @State private var register = false
 
-/// Shows the account summary, sample indexes, and searchable sample assets.
+    var body: some View {
+        Form {
+            Section {
+                Label("NORTHSTAR", systemImage: "sparkles").font(.title.bold())
+                Text("Practice investing, one decision at a time.").font(.title2)
+                Text("Synthetic Indian stock prices and virtual rupees. No live quotes, brokerage or real-money orders.")
+                    .foregroundStyle(.secondary)
+            }
+            Section("Practice on this device") {
+                Button("Enter offline demo") { Task { await trading.enterOffline() } }
+                    .accessibilityIdentifier("enterOffline")
+                Text("No account needed. Your demo holdings, orders and watchlist stay on this device.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if trading.apiOrigin != nil {
+                Section(register ? "Create API paper account" : "Sign in to API paper account") {
+                    if let error = trading.configurationError { Text(error).foregroundStyle(.red) }
+                    else {
+                        TextField("Username", text: $username)
+                            .textContentType(.username).textInputAutocapitalization(.never)
+                            .autocorrectionDisabled().keyboardType(.asciiCapable)
+                            .accessibilityIdentifier("username")
+                        SecureField("Password", text: $password)
+                            .textContentType(register ? .newPassword : .password)
+                            .accessibilityIdentifier("password")
+                        Text("Username: 3–40 letters, numbers, _, . or -. Password: 12–128 characters.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Button(register ? "Create paper account" : "Sign in") {
+                            // Clear the field immediately; neither credentials nor bearer tokens are saved.
+                            let suppliedPassword = password
+                            password = ""
+                            Task { await trading.authenticate(username: username, password: suppliedPassword, register: register) }
+                        }
+                        Button(register ? "Already registered? Sign in" : "Create an account") {
+                            register.toggle(); password = ""; trading.message = nil
+                        }
+                        Text("Each API account starts empty with ₹10 lakh in virtual cash. Signing in again is required after restarting.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            StatusSection()
+            Section { NavigationLink("Privacy and demo limits") { PrivacyView() } }
+        }
+        .navigationTitle("Welcome")
+        .disabled(trading.isBusy)
+    }
+}
+
+struct StatusSection: View {
+    @EnvironmentObject private var trading: TradingStore
+    var body: some View {
+        if trading.isBusy {
+            Section { ProgressView("Working…").accessibilityIdentifier("working") }
+        }
+        if let message = trading.message {
+            Section {
+                Text(message).accessibilityIdentifier("statusMessage")
+                Button("Dismiss message") { trading.message = nil }
+            }
+        }
+        if let pending = trading.pending {
+            Section("Unconfirmed paper order") {
+                Text("\(pending.request.side.rawValue) \(pending.request.quantity) × \(pending.request.symbol)")
+                Text("The server may already have completed this order. Retry sends the original ID and cannot intentionally create a second order. New orders are blocked until this is resolved.")
+                    .font(.footnote)
+                Button("Retry original order") { Task { await trading.retryOrder() } }
+                    .disabled(trading.isBusy).accessibilityIdentifier("retryOrder")
+            }
+        }
+    }
+}
+
 struct DiscoverView: View {
     @EnvironmentObject private var trading: TradingStore
-    @StateObject private var viewModel = DiscoverViewModel()
-
+    @State private var query = ""
+    @State private var category = ""
+    @State private var sort: AssetSort = .alphabetical
+    private var results: [MarketAsset] {
+        Discovery.assets(trading.assets, query: query, category: category, sort: sort)
+    }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("NORTHSTAR")
-                            .font(.system(size: 17, weight: .heavy, design: .rounded))
-                            .tracking(2.2)
-                            .foregroundStyle(TradingStyle.ink)
-                        Text("INDIA, IN FOCUS")
-                            .font(.system(size: 9, weight: .medium))
-                            .tracking(1.8)
-                            .foregroundStyle(TradingStyle.muted)
-                    }
-                    Spacer()
-                    Text("DEMO")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(1)
-                        .foregroundStyle(TradingStyle.green)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 7)
-                        .background(Color(red: 227 / 255, green: 238 / 255, blue: 232 / 255), in: Capsule())
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("INDIAN MARKETS, IN FOCUS")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(TradingStyle.green)
-                    Text("Good evening.")
-                        .font(.system(size: 30, weight: .bold))
-                        .tracking(-0.8)
-                        .foregroundStyle(TradingStyle.ink)
-                    Text("Explore Indian stocks at your own pace.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(red: 114 / 255, green: 123 / 255, blue: 117 / 255))
-                }
-                .padding(.top, 34)
-                .padding(.bottom, 21)
-
-                accountCard
-                sectionHeading("Market snapshot", subtitle: "Illustrative Indian index values", trailing: "DEMO")
-                    .padding(.top, 29)
-                    .padding(.bottom, 12)
-                indexCard
-
-                sectionHeading("Popular stocks", subtitle: "NSE sample companies · tap to explore", trailing: "\(viewModel.filteredAssets.count) STOCKS")
-                    .padding(.top, 29)
-                    .padding(.bottom, 12)
-
-                HStack(spacing: 11) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(TradingStyle.secondary)
-                    TextField("Search name or ticker", text: $viewModel.searchText)
-                        .font(.system(size: 13))
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .accessibilityLabel("Search Indian stocks")
-                }
-                .padding(.horizontal, 13)
-                .frame(height: 46)
-                .background(.white, in: RoundedRectangle(cornerRadius: 12))
-                .padding(.bottom, 9)
-
-                VStack(spacing: 0) {
-                    if viewModel.filteredAssets.isEmpty {
-                        Text("No sample assets match that search.")
-                            .font(.system(size: 13))
-                            .foregroundStyle(TradingStyle.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 24)
-                    } else {
-                        ForEach(viewModel.filteredAssets) { asset in
-                            NavigationLink {
-                                AssetDetailView(asset: asset)
-                            } label: {
-                                AssetRow(asset: asset)
-                            }
-                            .buttonStyle(.plain)
+        List {
+            Section(trading.accountLabel) {
+                LabeledContent("Account value", value: DemoMoney.format(trading.cash + trading.marketValue))
+                LabeledContent("Available virtual cash", value: DemoMoney.format(trading.cash))
+                Text("Paper trading only · prices are synthetic").font(.footnote).foregroundStyle(.secondary)
+            }
+            StatusSection()
+            Section("Illustrative market snapshot") {
+                ForEach(trading.indexes) { index in
+                    LabeledContent(index.name) {
+                        VStack(alignment: .trailing) {
+                            Text(index.value)
+                            Label(index.change, systemImage: index.isPositive ? "arrow.up.right" : "arrow.down.right")
+                                .font(.footnote)
                         }
                     }
-                }
-                .padding(.horizontal, 14)
-                .background(.white, in: RoundedRectangle(cornerRadius: 15))
-
-                Text("Learning demo only. These India-market examples are not live prices, investment advice, or real orders.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(TradingStyle.muted)
-                    .lineSpacing(3)
-                    .padding(.top, 18)
-                    .padding(.bottom, 12)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-        }
-        .background(TradingStyle.background.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var accountCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("DEMO ACCOUNT VALUE")
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(1.1)
-                    .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-                Spacer()
-                Text("INDIA SAMPLE PORTFOLIO")
-                    .font(.system(size: 9))
-                    .tracking(0.8)
-                    .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-            }
-            Text(DemoMoney.format(trading.cash + viewModel.positionsValue(for: trading.positions)))
-                .font(.system(size: 30, weight: .bold))
-                .tracking(-0.6)
-                .foregroundStyle(.white)
-                .padding(.top, 12)
-            HStack {
-                Text("\(DemoMoney.format(trading.cash)) available to simulate")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 208 / 255, green: 224 / 255, blue: 215 / 255))
-                Spacer()
-                NavigationLink {
-                    PortfolioView()
-                } label: {
-                    Text("Portfolio  >")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
+                    .accessibilityElement(children: .combine)
                 }
             }
-            .padding(.top, 14)
-        }
-        .padding(20)
-        .background(TradingStyle.darkGreen, in: RoundedRectangle(cornerRadius: 18))
-    }
-
-    private var indexCard: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(MarketData.indexes.enumerated()), id: \.element.id) { index, marketIndex in
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(marketIndex.name)
-                        .font(.system(size: 10))
-                        .foregroundStyle(TradingStyle.secondary)
-                    Text(marketIndex.value)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                    Text(marketIndex.change)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(marketIndex.isPositive ? TradingStyle.green : TradingStyle.red)
+            Section("Explore companies") {
+                Picker("Sector", selection: $category) {
+                    Text("All sectors").tag("")
+                    ForEach(Array(Set(trading.assets.map(\.category))).sorted(), id: \.self) { Text($0).tag($0) }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, index == 0 ? 0 : 12)
-                .padding(.trailing, 6)
-                .overlay(alignment: .leading) {
-                    if index > 0 {
-                        Rectangle()
-                            .fill(Color(red: 227 / 255, green: 231 / 255, blue: 225 / 255))
-                            .frame(width: 1)
-                            .padding(.vertical, 1)
-                            .offset(x: -1)
-                    }
+                Picker("Sort", selection: $sort) {
+                    ForEach(AssetSort.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                if results.isEmpty {
+                    ContentUnavailableView.search(text: query)
+                }
+                ForEach(results) { asset in
+                    NavigationLink { AssetDetailView(asset: asset) } label: { AssetRow(asset: asset) }
+                        .accessibilityIdentifier("asset-\(asset.symbol)")
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 15)
-        .background(.white, in: RoundedRectangle(cornerRadius: 15))
-    }
-
-    private func sectionHeading(_ title: String, subtitle: String, trailing: String) -> some View {
-        HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(TradingStyle.muted)
-            }
-            Spacer()
-            Text(trailing)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(0.8)
-                .foregroundStyle(title == "Market snapshot" ? Color(red: 139 / 255, green: 113 / 255, blue: 69 / 255) : TradingStyle.muted)
-                .padding(.bottom, 3)
-        }
+        .navigationTitle("Discover")
+        .searchable(text: $query, prompt: "Company or ticker")
+        .refreshable { await trading.refresh() }
+        .toolbar { if trading.mode == .remote { Button("Refresh", systemImage: "arrow.clockwise") { Task { await trading.refresh() } }.disabled(trading.isBusy) } }
     }
 }
 
-/// Presents one asset's identity, sample chart, and latest example quote.
-private struct AssetRow: View {
+struct AssetRow: View {
     let asset: MarketAsset
-
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(asset.symbol)
-                    .font(.system(size: 15, weight: .bold))
-                    .tracking(0.3)
-                    .foregroundStyle(TradingStyle.ink)
-                Text(asset.companyName)
-                    .font(.system(size: 12))
-                    .foregroundStyle(TradingStyle.secondary)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 6) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(asset.symbol).font(.headline)
+                    Spacer()
+                    Text(DemoMoney.format(asset.price)).monospacedDigit()
+                }
+                VStack(alignment: .leading) {
+                    Text(asset.symbol).font(.headline)
+                    Text(DemoMoney.format(asset.price)).monospacedDigit()
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            SparklineView(values: asset.history, color: asset.trendColor, height: 36)
-                .frame(width: 70)
-                .accessibilityLabel("Sample price trend chart")
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(DemoMoney.format(asset.price))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(TradingStyle.ink)
-                Text("\(asset.isPositive ? "+" : "")\(asset.changePercent, specifier: "%.2f")%")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(asset.trendColor)
-            }
-            .frame(minWidth: 86, alignment: .trailing)
+            Text(asset.companyName).font(.subheadline).foregroundStyle(.secondary)
+            Label("\(asset.changePercent.formatted(.number.precision(.fractionLength(2))))%", systemImage: asset.isPositive ? "arrow.up.right" : "arrow.down.right")
+                .font(.footnote).foregroundStyle(asset.trendColor)
         }
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(red: 229 / 255, green: 232 / 255, blue: 226 / 255))
-                .frame(height: 0.5)
-        }
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Open asset details")
     }
 }
 
-/// Draws a small bar chart from the sample history values.
-private struct SparklineView: View {
-    let values: [Double]
-    let color: Color
-    let height: CGFloat
-
-    private var maximum: Double { max(values.max() ?? 1, 1) }
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 3) {
-            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color.opacity(0.38 + (Double(index) / Double(max(values.count - 1, 1))) * 0.62))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(3, height * max(0.12, value / maximum)))
-            }
-        }
-        .frame(height: height, alignment: .bottom)
-    }
-}
-
-/// Shows one asset's sample quote, descriptive information, and order actions.
-private struct AssetDetailView: View {
+struct AssetDetailView: View {
     @EnvironmentObject private var trading: TradingStore
     let asset: MarketAsset
-    @State private var orderSide: OrderSide?
-
+    @State private var showOrder = false
+    private var current: MarketAsset { trading.asset(asset.symbol) ?? asset }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(asset.symbol)
-                            .font(.system(size: 26, weight: .heavy))
-                            .tracking(0.4)
-                            .foregroundStyle(TradingStyle.ink)
-                        Text(asset.companyName)
-                            .font(.system(size: 13))
-                            .foregroundStyle(TradingStyle.secondary)
-                    }
-                    Spacer()
-                    Text(asset.exchange)
-                        .font(.system(size: 9, weight: .bold))
-                        .tracking(0.4)
-                        .foregroundStyle(TradingStyle.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.white, in: Capsule())
-                }
-                .padding(.top, 18)
-
-                Text(DemoMoney.format(asset.price))
-                    .font(.system(size: 34, weight: .bold))
-                    .tracking(-0.7)
-                    .foregroundStyle(TradingStyle.ink)
-                    .padding(.top, 22)
-                Text("\(asset.change >= 0 ? "+" : "-")\(DemoMoney.format(abs(asset.change))) (\(asset.changePercent >= 0 ? "+" : "")\(asset.changePercent, specifier: "%.2f")%) today")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(asset.trendColor)
-                    .padding(.top, 4)
-
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("SAMPLE PRICE MOVEMENT")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1)
-                            .foregroundStyle(TradingStyle.secondary)
-                        Spacer()
-                        Text("Illustrative only")
-                            .font(.system(size: 9))
-                            .foregroundStyle(TradingStyle.muted)
-                    }
-                    SparklineView(values: asset.history, color: asset.trendColor, height: 160)
-                        .accessibilityLabel("Sample price movement chart")
-                    HStack {
-                        Text("9:30 AM")
-                        Spacer()
-                        Text("12:00 PM")
-                        Spacer()
-                        Text("4:00 PM")
-                    }
-                    .font(.system(size: 9))
-                    .foregroundStyle(TradingStyle.muted)
-                }
-                .padding(16)
-                .background(.white, in: RoundedRectangle(cornerRadius: 15))
-                .padding(.top, 22)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("About this sample")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                        .padding(.bottom, 10)
-                    infoRow("Category", value: asset.category)
-                    infoRow("Exchange", value: asset.exchange)
-                    infoRow("Quote source", value: "Built-in demo data", isLast: true)
-                }
-                .padding(16)
-                .background(.white, in: RoundedRectangle(cornerRadius: 15))
-                .padding(.top, 12)
-
-                Text("Educational demo, not investment advice. Orders are simulated locally and never reach a broker.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(TradingStyle.muted)
-                    .lineSpacing(3)
-                    .padding(.top, 16)
-
-                HStack(spacing: 10) {
-                    Button {
-                        orderSide = .buy
-                    } label: {
-                        Text("Simulate buy")
-                            .font(.system(size: 13, weight: .bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .foregroundStyle(.white)
-                            .background(TradingStyle.green, in: RoundedRectangle(cornerRadius: 11))
-                    }
-                    Button {
-                        orderSide = .sell
-                    } label: {
-                        Text("Simulate sell")
-                            .font(.system(size: 13, weight: .bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .foregroundStyle(TradingStyle.red)
-                            .background(Color(red: 249 / 255, green: 233 / 255, blue: 232 / 255), in: RoundedRectangle(cornerRadius: 11))
-                    }
-                }
-                .padding(.top, 18)
-                .padding(.bottom, 24)
+        List {
+            Section { AssetRow(asset: current) }
+            Section("Illustrative trend") {
+                Sparkline(values: current.history)
+                    .stroke(current.trendColor, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                    .frame(height: 130)
+                    .padding(.vertical)
+                    .accessibilityLabel("Synthetic trend for \(current.symbol). Illustrative values, not historical market prices.")
+                Text("Sample shape only; no historical intervals or live feed.").font(.footnote).foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 20)
+            Section("Company") {
+                LabeledContent("Sector", value: current.category)
+                LabeledContent("Exchange", value: current.exchange)
+                LabeledContent("Shares owned", value: "\(trading.positions.first { $0.symbol == current.symbol }?.quantity ?? 0)")
+            }
+            Section {
+                Button(trading.ledger.watchlist.contains(current.symbol) ? "Remove from watchlist" : "Add to watchlist", systemImage: trading.ledger.watchlist.contains(current.symbol) ? "star.fill" : "star") {
+                    Task { await trading.toggleWatch(current) }
+                }
+                .disabled(trading.isBusy).accessibilityIdentifier("toggleWatch")
+                Button("Review paper order", systemImage: "arrow.left.arrow.right") { showOrder = true }
+                    .disabled(trading.isBusy || trading.pending != nil)
+                    .accessibilityIdentifier("reviewOrder")
+            }
+            StatusSection()
         }
-        .background(TradingStyle.background.ignoresSafeArea())
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $orderSide) { side in
-            OrderTicketView(asset: asset, side: side)
-                .environmentObject(trading)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
+        .navigationTitle(current.symbol)
+        .sheet(isPresented: $showOrder) { NavigationStack { OrderTicketView(asset: current) } }
     }
+}
 
-    private func infoRow(_ label: String, value: String, isLast: Bool = false) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(TradingStyle.secondary)
-            Spacer()
-            Text(value)
-                .fontWeight(.medium)
-                .foregroundStyle(TradingStyle.ink)
-        }
-        .font(.system(size: 11))
-        .padding(.vertical, 10)
-        .overlay(alignment: .bottom) {
-            if !isLast {
-                Rectangle()
-                    .fill(TradingStyle.background)
-                    .frame(height: 1)
+struct Sparkline: Shape {
+    let values: [Double]
+    func path(in rect: CGRect) -> Path {
+        guard values.count > 1, values.allSatisfy(\.isFinite), let low = values.min(), let high = values.max() else { return Path() }
+        let span = max(high - low, 1)
+        return Path { path in
+            for (index, value) in values.enumerated() {
+                let point = CGPoint(x: rect.width * CGFloat(index) / CGFloat(values.count - 1), y: rect.height * CGFloat(1 - (value - low) / span))
+                if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
         }
     }
 }
 
-/// Collects a whole-share quantity and asks the store to simulate that order.
-private struct OrderTicketView: View {
+struct OrderTicketView: View {
     @EnvironmentObject private var trading: TradingStore
     @Environment(\.dismiss) private var dismiss
     let asset: MarketAsset
-    let side: OrderSide
-    @State private var quantityText = "1"
-    @State private var message: String?
-    @State private var succeeded = false
-    @FocusState private var quantityFocused: Bool
-
-    private var quantity: Int { Int(quantityText) ?? 0 }
-    private var estimatedTotal: Double { Double(quantity) * asset.price }
-
+    @State private var side: OrderSide = .buy
+    @State private var quantity = "1"
+    @State private var reviewing = false
+    private var count: Int { Int(quantity) ?? 0 }
+    private var preview: OrderPreview { trading.preview(asset: asset, side: side, quantity: count) }
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Capsule()
-                .fill(Color.gray.opacity(0.25))
-                .frame(width: 38, height: 5)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-                .padding(.bottom, 19)
-
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("SIMULATED ORDER")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1.2)
-                        .foregroundStyle(TradingStyle.green)
-                    Text("\(side.rawValue) \(asset.symbol)")
-                        .font(.system(size: 21, weight: .bold))
-                        .foregroundStyle(TradingStyle.ink)
+        Form {
+            Section(reviewing ? "Review paper market order" : "Paper market order") {
+                LabeledContent("Stock", value: asset.symbol)
+                if reviewing {
+                    LabeledContent("Side", value: side.rawValue)
+                    LabeledContent("Whole shares", value: quantity)
+                } else {
+                    Picker("Side", selection: $side) {
+                        Text("Buy").tag(OrderSide.buy); Text("Sell").tag(OrderSide.sell)
+                    }.pickerStyle(.segmented)
+                    TextField("Whole shares", text: $quantity).keyboardType(.numberPad)
+                        .accessibilityIdentifier("orderQuantity")
                 }
-                Spacer()
-                Button("CLOSE") { dismiss() }
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(0.6)
-                    .foregroundStyle(TradingStyle.green)
+                LabeledContent("Sample price", value: DemoMoney.format(asset.price))
+                LabeledContent("Estimated order value", value: DemoMoney.format(preview.estimatedValue))
+                LabeledContent("Virtual cash after order", value: DemoMoney.format(preview.cashAfter))
+                LabeledContent("Maximum affordable buy", value: "\(preview.maxBuyQuantity)")
+                LabeledContent("Shares owned", value: "\(preview.ownedQuantity)")
             }
-
-            Text("Whole shares")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(TradingStyle.secondary)
-                .padding(.top, 20)
-            TextField("Number of whole shares", text: $quantityText)
-                .keyboardType(.numberPad)
-                .focused($quantityFocused)
-                .font(.system(size: 18, weight: .semibold))
-                .padding(12)
-                .background(TradingStyle.background, in: RoundedRectangle(cornerRadius: 10))
-                .accessibilityLabel("Number of whole shares")
-                .onChange(of: quantityText) { _, newValue in
-                    quantityText = String(newValue.filter(\.isNumber))
-                    message = nil
+            Section {
+                Text("Synthetic market order. No real money moves. No brokerage, taxes or exchange fees are deducted. The API server validates and prices API orders.")
+                if let error = preview.error { Text(error).foregroundStyle(.red) }
+                if reviewing {
+                    Button("Confirm paper \(side == .buy ? "buy" : "sale")") {
+                        Task {
+                            if await trading.placeOrder(asset: asset, side: side, quantity: count) { dismiss() }
+                            else { reviewing = false }
+                        }
+                    }
+                    .accessibilityIdentifier("confirmOrder")
+                    Button("Edit order") { reviewing = false }
+                } else {
+                    Button("Review order") { reviewing = true }
+                        .accessibilityIdentifier("continueReview")
                 }
-                .padding(.top, 7)
-
-            HStack {
-                Text("Estimated total")
-                    .font(.system(size: 12))
-                    .foregroundStyle(TradingStyle.secondary)
-                Spacer()
-                Text(DemoMoney.format(estimatedTotal))
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(TradingStyle.ink)
             }
-            .padding(.top, 14)
-            Text("\(quantity) share(s) x sample quote \(DemoMoney.format(asset.price)). No fees in this demo.")
-                .font(.system(size: 10))
-                .foregroundStyle(TradingStyle.muted)
-                .padding(.top, 5)
-
-            if let message {
-                Text(message)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(succeeded ? TradingStyle.green : TradingStyle.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 12)
-            }
-
-            Button {
-                submitOrder()
-            } label: {
-                Text(succeeded ? "Done" : "Confirm simulated order")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .background(TradingStyle.green, in: RoundedRectangle(cornerRadius: 10))
-            }
-            .padding(.top, 17)
-
-            Text("This does not place a real trade or move real money.")
-                .font(.system(size: 9))
-                .foregroundStyle(TradingStyle.muted)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
+            .disabled(!preview.canSubmit || trading.isBusy || trading.pending != nil)
+            StatusSection()
         }
-        .padding(.horizontal, 22)
-        .background(.white)
-        .onChange(of: succeeded) { _, newValue in
-            if newValue {
-                quantityFocused = false
-            }
-        }
-    }
-
-    private func submitOrder() {
-        guard !succeeded else {
-            dismiss()
-            return
-        }
-        quantityFocused = false
-        switch trading.placeOrder(symbol: asset.symbol, side: side, quantity: quantity) {
-        case .accepted:
-            succeeded = true
-            message = "\(side.rawValue) simulated. View the updated portfolio in Activity or Portfolio."
-        case .rejected(let reason):
-            message = reason
-        }
+        .navigationTitle(reviewing ? "Review" : "Order ticket")
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(trading.isBusy) } }
+        .interactiveDismissDisabled(trading.isBusy)
     }
 }
 
-/// Shows the demo account totals, estimated gains, and each current holding.
+struct WatchlistView: View {
+    @EnvironmentObject private var trading: TradingStore
+    private var watched: [MarketAsset] { trading.assets.filter { trading.ledger.watchlist.contains($0.symbol) } }
+    var body: some View {
+        List {
+            StatusSection()
+            if watched.isEmpty {
+                ContentUnavailableView("Your watchlist is empty", systemImage: "star", description: Text("Explore a company in Discover and add it to your watchlist."))
+            }
+            ForEach(watched) { asset in
+                NavigationLink { AssetDetailView(asset: asset) } label: { AssetRow(asset: asset) }
+                    .swipeActions { Button("Remove", role: .destructive) { Task { await trading.toggleWatch(asset) } }.disabled(trading.isBusy) }
+            }
+        }
+        .navigationTitle("Watchlist")
+        .refreshable { await trading.refresh() }
+    }
+}
+
 struct PortfolioView: View {
     @EnvironmentObject private var trading: TradingStore
-    @Environment(\.dismiss) private var dismiss
-    private let viewModel = PortfolioViewModel()
-    let onExplore: (() -> Void)?
-
-    init(onExplore: (() -> Void)? = nil) {
-        self.onExplore = onExplore
-    }
-
-    private var marketValue: Double { viewModel.marketValue(for: trading.positions) }
-    private var investedValue: Double { viewModel.investedValue(for: trading.positions) }
-    private var unrealizedGain: Double { marketValue - investedValue }
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                pageHeading(
-                    eyebrow: "YOUR MONEY, EXPLAINED",
-                    title: "Portfolio",
-                    subtitle: "A local, simulated account for learning."
-                )
-                totalCard
-                gainCard
-                HStack(alignment: .bottom) {
-                    Text("Your positions")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                    Spacer()
-                    Text("\(trading.positions.count) HOLDINGS")
-                        .font(.system(size: 9, weight: .bold))
-                        .tracking(1)
-                        .foregroundStyle(TradingStyle.muted)
-                }
-                .padding(.top, 30)
-                .padding(.bottom, 12)
-
+        List {
+            Section("Virtual account") {
+                LabeledContent("Cash", value: DemoMoney.format(trading.cash))
+                LabeledContent("Holdings value", value: DemoMoney.format(trading.marketValue))
+                LabeledContent("Invested value", value: DemoMoney.format(trading.investedValue))
+                LabeledContent("Unrealized gain/loss", value: DemoMoney.format(trading.marketValue - trading.investedValue))
+                Text("Estimates from synthetic quotes. Fees and taxes are excluded.").font(.footnote).foregroundStyle(.secondary)
+            }
+            StatusSection()
+            Section("Holdings") {
                 if trading.positions.isEmpty {
-                    emptyPortfolio
-                } else {
-                    VStack(spacing: 10) {
-                        ForEach(trading.positions) { position in
-                            if let asset = MarketData.asset(for: position.symbol) {
-                                NavigationLink {
-                                    AssetDetailView(asset: asset)
-                                } label: {
-                                    positionCard(position, asset: asset)
-                                }
-                                .buttonStyle(.plain)
+                    ContentUnavailableView("No holdings yet", systemImage: "chart.pie", description: Text("Explore Discover to review your first paper order."))
+                }
+                ForEach(trading.positions) { position in
+                    if let asset = trading.asset(position.symbol) {
+                        NavigationLink { AssetDetailView(asset: asset) } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                AssetRow(asset: asset)
+                                Text("\(position.quantity) shares · average \(DemoMoney.format(position.averageCost))")
+                                Text("Value \(DemoMoney.format(asset.price * Double(position.quantity)))")
+                                Text("Unrealized P/L \(DemoMoney.format((asset.price - position.averageCost) * Double(position.quantity)))")
                             }
+                            .font(.subheadline).accessibilityElement(children: .combine)
                         }
+                    } else {
+                        Text("\(position.symbol): quote unavailable. Refresh your account.")
                     }
                 }
-                Text("This portfolio exists only in app memory and resets when the app restarts.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(TradingStyle.muted)
-                    .lineSpacing(3)
-                    .padding(.top, 14)
-                    .padding(.bottom, 20)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 22)
-        }
-        .background(TradingStyle.background.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var totalCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("TOTAL DEMO ACCOUNT VALUE")
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-            Text(DemoMoney.format(trading.cash + marketValue))
-                .font(.system(size: 29, weight: .bold))
-                .tracking(-0.5)
-                .foregroundStyle(.white)
-                .padding(.top, 10)
-            Rectangle()
-                .fill(Color(red: 65 / 255, green: 100 / 255, blue: 83 / 255))
-                .frame(height: 1)
-                .padding(.vertical, 17)
-            HStack {
-                summaryValue("Invested value", value: marketValue)
-                Spacer()
-                summaryValue("Available cash", value: trading.cash, alignment: .trailing)
             }
         }
-        .padding(20)
-        .background(TradingStyle.darkGreen, in: RoundedRectangle(cornerRadius: 18))
-    }
-
-    private var gainCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Unrealized gain / loss")
-                    .font(.system(size: 11))
-                    .foregroundStyle(TradingStyle.secondary)
-                Text(signedCurrency(unrealizedGain))
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(unrealizedGain >= 0 ? TradingStyle.green : TradingStyle.red)
-            }
-            Spacer()
-            Text("Based on sample\nquote values")
-                .font(.system(size: 9))
-                .foregroundStyle(TradingStyle.muted)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(16)
-        .background(.white, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.top, 12)
-    }
-
-    private var emptyPortfolio: some View {
-        VStack(spacing: 8) {
-            Text("Your demo portfolio is empty")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-            Text("Explore an asset and simulate a buy to see how positions work.")
-                .font(.system(size: 12))
-                .foregroundStyle(TradingStyle.secondary)
-                .multilineTextAlignment(.center)
-            Button {
-                if let onExplore {
-                    onExplore()
-                } else {
-                    dismiss()
-                }
-            } label: {
-                Text("Explore sample assets")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 11)
-                    .background(TradingStyle.green, in: RoundedRectangle(cornerRadius: 10))
-            }
-            .padding(.top, 7)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(.white, in: RoundedRectangle(cornerRadius: 15))
-    }
-
-    private func summaryValue(_ title: String, value: Double, alignment: HorizontalAlignment = .leading) -> some View {
-        VStack(alignment: alignment, spacing: 5) {
-            Text(title)
-                .font(.system(size: 11))
-                .foregroundStyle(Color(red: 184 / 255, green: 208 / 255, blue: 195 / 255))
-            Text(DemoMoney.format(value))
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(.white)
-        }
-    }
-
-    private func positionCard(_ position: Position, asset: MarketAsset) -> some View {
-        let value = viewModel.marketValue(for: position, asset: asset)
-        let gain = viewModel.gainLoss(for: position, asset: asset)
-
-        return VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(position.symbol)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(TradingStyle.ink)
-                    Text("\(position.quantity) shares at \(DemoMoney.format(position.averageCost)) avg.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(TradingStyle.secondary)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(DemoMoney.format(value))
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(TradingStyle.ink)
-                    Text(signedCurrency(gain))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(gain >= 0 ? TradingStyle.green : TradingStyle.red)
-                }
-            }
-            SparklineView(values: asset.history, color: gain >= 0 ? TradingStyle.green : TradingStyle.red, height: 24)
-                .accessibilityLabel("Sample price trend chart")
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 15)
-        .padding(.bottom, 11)
-        .background(.white, in: RoundedRectangle(cornerRadius: 14))
+        .navigationTitle("Portfolio")
+        .refreshable { await trading.refresh() }
     }
 }
 
-/// Lists simulated orders and explains that no real trades are placed.
 struct ActivityView: View {
     @EnvironmentObject private var trading: TradingStore
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                pageHeading(
-                    eyebrow: "A CLEAR RECORD",
-                    title: "Activity",
-                    subtitle: "Every order in this screen is simulated."
-                )
-
-                if trading.orders.isEmpty {
-                    emptyActivity
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(trading.orders) { order in
-                            orderRow(order)
-                            if order.id != trading.orders.last?.id {
-                                Rectangle()
-                                    .fill(Color(red: 229 / 255, green: 232 / 255, blue: 226 / 255))
-                                    .frame(height: 0.5)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 15))
-                }
-
+        List {
+            StatusSection()
+            if trading.orders.isEmpty {
+                ContentUnavailableView("No paper orders yet", systemImage: "clock", description: Text("Completed paper orders will appear here."))
+            }
+            ForEach(trading.orders) { order in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What does SIMULATED mean?")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color(red: 49 / 255, green: 69 / 255, blue: 58 / 255))
-                    Text("These records change only this app's local demo portfolio. They are not sent to an exchange or broker and have no monetary value.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 117 / 255, green: 128 / 255, blue: 120 / 255))
-                        .lineSpacing(4)
+                    Label("\(order.side.rawValue) \(order.symbol)", systemImage: order.side == .buy ? "arrow.down.left" : "arrow.up.right")
+                        .font(.headline)
+                    Text("\(order.quantity) shares × \(DemoMoney.format(order.price))")
+                    Text(DemoMoney.format(order.total)).monospacedDigit()
+                    Text(order.createdAt, format: .dateTime.day().month().year().hour().minute())
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("Completed · paper order").font(.footnote)
                 }
-                .padding(15)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(red: 240 / 255, green: 243 / 255, blue: 239 / 255), in: RoundedRectangle(cornerRadius: 13))
-                .padding(.top, 19)
-                .padding(.bottom, 20)
+                .accessibilityElement(children: .combine)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 22)
+            if trading.mode == .remote { Text("The API returns the latest 500 completed orders.").font(.footnote).foregroundStyle(.secondary) }
         }
-        .background(TradingStyle.background.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var emptyActivity: some View {
-        VStack(spacing: 0) {
-            Text("--")
-                .font(.system(size: 17, weight: .heavy))
-                .foregroundStyle(TradingStyle.green)
-                .frame(width: 52, height: 52)
-                .background(Color(red: 234 / 255, green: 241 / 255, blue: 236 / 255), in: Circle())
-            Text("No activity yet")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                .padding(.top, 16)
-            Text("When you simulate a buy or sell, its status, quantity, and sample price will appear here.")
-                .font(.system(size: 12))
-                .foregroundStyle(TradingStyle.secondary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-                .padding(.top, 8)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 22)
-        .padding(.vertical, 34)
-        .background(.white, in: RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func orderRow(_ order: SimulatedOrder) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 11) {
-                Text(order.side.rawValue)
-                    .font(.system(size: 10, weight: .heavy))
-                    .foregroundStyle(order.side == .buy ? TradingStyle.green : TradingStyle.red)
-                    .frame(width: 44, height: 30)
-                    .background(
-                        order.side == .buy
-                            ? Color(red: 231 / 255, green: 242 / 255, blue: 235 / 255)
-                            : Color(red: 249 / 255, green: 233 / 255, blue: 232 / 255),
-                        in: RoundedRectangle(cornerRadius: 8)
-                    )
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(order.quantity) \(order.symbol)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                    Text("\(MarketData.asset(for: order.symbol)?.companyName ?? "Sample asset") · \(DemoMoney.format(order.price)) per share")
-                        .font(.system(size: 10))
-                        .foregroundStyle(TradingStyle.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 4)
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(DemoMoney.format(order.total))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color(red: 29 / 255, green: 41 / 255, blue: 35 / 255))
-                    Text("SIMULATED")
-                        .font(.system(size: 9, weight: .heavy))
-                        .tracking(0.3)
-                        .foregroundStyle(Color(red: 164 / 255, green: 123 / 255, blue: 55 / 255))
-                }
-                .fixedSize()
-            }
-            Text(order.createdAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.system(size: 9))
-                .foregroundStyle(TradingStyle.muted)
-                .padding(.leading, 55)
-        }
-        .padding(.vertical, 14)
+        .navigationTitle("Activity")
+        .refreshable { await trading.refresh() }
     }
 }
 
-private func pageHeading(eyebrow: String, title: String, subtitle: String) -> some View {
-    VStack(alignment: .leading, spacing: 0) {
-        Text(eyebrow)
-            .font(.system(size: 10, weight: .heavy))
-            .tracking(1.5)
-            .foregroundStyle(TradingStyle.green)
-        Text(title)
-            .font(.system(size: 30, weight: .bold))
-            .tracking(-0.8)
-            .foregroundStyle(TradingStyle.ink)
-            .padding(.top, 9)
-        Text(subtitle)
-            .font(.system(size: 13))
-            .foregroundStyle(Color(red: 114 / 255, green: 123 / 255, blue: 117 / 255))
-            .padding(.top, 6)
-            .padding(.bottom, 22)
+struct AccountView: View {
+    @EnvironmentObject private var trading: TradingStore
+    @State private var deleting = false
+    var body: some View {
+        List {
+            Section("Account") {
+                Text(trading.accountLabel).font(.headline)
+                if trading.mode == .remote { LabeledContent("Username", value: trading.username) }
+                Text(trading.mode == .remote ? "The server owns this virtual ledger. Your session is kept in memory only." : "Your demo ledger is saved locally and survives restart. Signing out does not erase it.")
+                    .foregroundStyle(.secondary)
+            }
+            StatusSection()
+            Section("Learn the basics") {
+                ForEach(LearningLesson.all) { lesson in
+                    DisclosureGroup(lesson.title) { Text(lesson.explanation).padding(.vertical, 8) }
+                }
+            }
+            Section {
+                NavigationLink("Privacy and demo limits") { PrivacyView() }
+                Button("Sign out", role: .destructive) { Task { await trading.signOut() } }.disabled(trading.isBusy)
+                if trading.mode == .remote {
+                    Button("Delete API account permanently", role: .destructive) { deleting = true }
+                        .disabled(trading.isBusy).accessibilityIdentifier("deleteAccount")
+                }
+            }
+        }
+        .navigationTitle("Account & learning")
+        .confirmationDialog("Delete your API paper account permanently?", isPresented: $deleting, titleVisibility: .visible) {
+            Button("Delete account and all server data", role: .destructive) { Task { await trading.deleteAccount() } }
+        } message: { Text("This deletes your server account, holdings, watchlist, sessions and orders. This cannot be undone.") }
     }
 }
 
-/// Formats a currency amount with a leading sign for gains and losses.
-private func signedCurrency(_ amount: Double) -> String {
-    "\(amount >= 0 ? "+" : "-")\(DemoMoney.format(abs(amount)))"
+struct PrivacyView: View {
+    var body: some View {
+        List {
+            Section("On this device") {
+                Text("Offline holdings, watchlists and paper orders are stored in the app’s private storage. API retry instructions contain an order ID and payload scoped to the account and server. Neither passwords nor bearer tokens are saved. No advertising or analytics SDK is included.")
+            }
+            Section("API paper accounts") {
+                Text("In API mode, your username, password and account actions are sent over HTTPS to the configured Northstar server. That server stores your account and transactions. Sessions expire; restart requires sign-in. You can permanently delete your API account from Account.")
+            }
+            Section("Learning demo") {
+                Text("All prices and indexes are synthetic. There are no deposits, withdrawals, real trades or live quotes. This is not investment advice. Real execution, limit/stop orders, taxes, notifications and password recovery are not supported.")
+            }
+        }
+        .navigationTitle("Privacy & limits")
+    }
 }

@@ -1,41 +1,37 @@
 import SwiftUI
 
-/// Creates the app's shared demo ledger and connects the three primary tabs.
 struct ContentView: View {
     @StateObject private var trading = TradingStore()
-    @State private var selectedTab = 0
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack {
-                DiscoverView()
+        Group {
+            if trading.mode == .signedOut {
+                NavigationStack { LoginView() }
+            } else {
+                TabView {
+                    NavigationStack { DiscoverView() }
+                        .tabItem { Label("Discover", systemImage: "magnifyingglass") }
+                    NavigationStack { WatchlistView() }
+                        .tabItem { Label("Watchlist", systemImage: "star") }
+                    NavigationStack { PortfolioView() }
+                        .tabItem { Label("Portfolio", systemImage: "chart.pie") }
+                    NavigationStack { ActivityView() }
+                        .tabItem { Label("Activity", systemImage: "clock.arrow.circlepath") }
+                    NavigationStack { AccountView() }
+                        .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                }
             }
-            .tabItem {
-                Label("Discover", systemImage: "magnifyingglass")
+        }
+        .overlay {
+            if scenePhase != .active {
+                ZStack { Color(.systemBackground).ignoresSafeArea(); Label("Northstar", systemImage: "sparkles").font(.title) }
+                    .accessibilityHidden(true)
             }
-            .tag(0)
-
-            NavigationStack {
-                PortfolioView(onExplore: { selectedTab = 0 })
-            }
-            .tabItem {
-                Label("Portfolio", systemImage: "chart.pie")
-            }
-            .tag(1)
-
-            NavigationStack {
-                ActivityView()
-            }
-            .tabItem {
-                Label("Activity", systemImage: "clock.arrow.circlepath")
-            }
-            .tag(2)
         }
         .tint(TradingStyle.green)
         .environmentObject(trading)
     }
 }
 
-#Preview {
-    ContentView()
-}
+#Preview { ContentView() }

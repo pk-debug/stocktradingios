@@ -1,43 +1,44 @@
-//
-//  stocktradingiosUITests.swift
-//  stocktradingiosUITests
-//
-//  Created by Pawan Kumar on 16/10/26.
-//
-
 import XCTest
 
 final class stocktradingiosUITests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
+    @MainActor
+    func testOfflineReviewAndConfirmOrder() {
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
         let app = XCUIApplication()
+        app.launchArguments += ["--ui-testing", "--reset-ui-data"]
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        app.buttons["enterOffline"].tap()
+        XCTAssertTrue(app.navigationBars["Discover"].waitForExistence(timeout: 10))
+        let search = app.searchFields.firstMatch
+        search.tap()
+        search.typeText("RELIANCE\n")
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["asset-RELIANCE"].waitForExistence(timeout: 10))
+        app.buttons["asset-RELIANCE"].tap()
+        app.buttons["reviewOrder"].tap()
+        app.buttons["continueReview"].tap()
+        XCTAssertTrue(app.buttons["confirmOrder"].exists)
+        app.buttons["confirmOrder"].tap()
+        XCTAssertTrue(app.navigationBars["RELIANCE"].waitForExistence(timeout: 10))
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Paper order completed. No real money moved."].waitForExistence(timeout: 10))
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-ui-data" }
+        app.launch()
+        app.buttons["enterOffline"].tap()
+        app.tabBars.buttons["Activity"].tap()
+        XCTAssertTrue(app.staticTexts["BUY RELIANCE"].waitForExistence(timeout: 10))
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+    func testWatchlistAndLargeTextNavigation() {
+        let app = XCUIApplication()
+        app.launchArguments += ["--ui-testing", "--reset-ui-data", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        app.buttons["enterOffline"].tap()
+        app.tabBars.buttons["Watchlist"].tap()
+        XCTAssertTrue(app.staticTexts["Your watchlist is empty"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Account"].tap()
+        XCTAssertTrue(app.navigationBars["Account & learning"].waitForExistence(timeout: 10))
     }
 }
