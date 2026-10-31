@@ -1,6 +1,6 @@
 # Learn the native iOS architecture
 
-Start with `ContentView`, then follow `OrderTicketView` → `TradingStore.placeOrder` → `TradingRules` (offline) or `RemoteAccount.submit` (API). This shows a complete user action crossing presentation, domain, persistence and networking boundaries.
+Start with `stocktradingiosApp` and `ContentView`, then follow `OrderTicketView` → `TradingStore.placeOrder` → `TradingRules` (offline) or `RemoteAccount.submit` (API). This shows a complete user action crossing presentation, domain, persistence and networking boundaries.
 
 ```mermaid
 flowchart TD
@@ -21,7 +21,7 @@ The app uses one small Swift package for independent compilation and tests. This
 | Compose / Flutter widget tree | SwiftUI `View` values; `body` derives UI from state |
 | `remember` / local `State` | `@State` for inputs such as search and review state |
 | ViewModel + StateFlow / ChangeNotifier | `@MainActor TradingStore`, `ObservableObject`, `@Published` |
-| ViewModel lifetime owner / Provider | `@StateObject` in the root; `@EnvironmentObject` in descendants |
+| ViewModel lifetime owner / Provider | `@StateObject` in the app entry point; `@EnvironmentObject` in descendants |
 | Kotlin coroutines / Dart Future | Structured `async/await`, `Task`, explicit error handling |
 | Mutex around a suspending transaction | Actor isolation plus a busy guard spanning awaits |
 | Retrofit / Dio | URLSession + Codable DTOs behind `HTTPTransport` |
@@ -40,8 +40,8 @@ Actors are reentrant: another call can enter while the first is suspended. `Remo
 
 ## Security decisions worth discussing
 
-- The source API has password sessions, not a passkey endpoint. No fake passkey control is added.
-- Tokens stay in memory to match the source lifecycle. Keychain becomes appropriate if a future backend introduces refresh-token persistence; do not put bearer tokens in UserDefaults or ordinary JSON.
+- The original API has password sessions. Hosted email/social/SMS uses Authorization Code + PKCE and the JWT gateway. Passkeys require explicit identity-provider support; no fake passkey control is added.
+- Original localhost tokens stay in memory. Hosted OAuth access/refresh tokens use the device-only Keychain; a rotating receipt is saved before a renewed ticket is returned. Never put these tokens in UserDefaults or ordinary account JSON.
 - HTTPS, system certificate trust and ATS remain enabled in Release. Debug has a local-network allowance paired with client validation limiting HTTP to localhost/127.0.0.1 for simulator development. Certificate pinning is deliberately not invented for an unknown deployment. If your threat model requires pinning, choose the production host, use public-key pins with overlap/rotation and recovery plans, and test expiry/rotation before shipping.
 - An order UUID is persisted **before** sending. Retaining it after an ambiguous response prevents a second buy when the user retries. The server, not the client, guarantees idempotency and account isolation.
 - Offline files and retry records are atomic, excluded from backup and protected on iOS. Retry records contain order intent, never a password or token. Application sandbox storage is not a substitute for server authorization.
@@ -61,3 +61,12 @@ Actors are reentrant: another call can enter while the first is suspended. `Remo
 Use [Apple's iOS getting started](https://developer.apple.com/ios/get-started/), [SwiftUI tutorials](https://developer.apple.com/tutorials/swiftui), [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines), [accessibility](https://developer.apple.com/accessibility/), [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/), and [App Store review guidelines](https://developer.apple.com/app-store/review/guidelines/) alongside the code.
 
 Study state/data flow first, navigation and layout next, then async/await and actors, persistence/networking, tests, Instruments and release. Try changing a sector filter, writing an error-path test and inspecting allocations during navigation. The linked Apple getting-started page returned HTTP 403 from this workspace; these are learning references, not a claim that live Apple documentation was retrieved or that Apple has reviewed the implementation.
+
+
+## Added identity and device-security boundaries
+
+See [AUTHENTICATION.md](AUTHENTICATION.md) for the full lifecycle. `BrowserSignIn` owns the system browser and random PKCE/state values. `IdentitySession` renews JWT tickets and owns a Keychain-backed refresh receipt. `RemoteAccount` asks that provider for a current access token before each authenticated request. It never signs tokens or trusts a decoded JWT as authorization. The companion server verifies signatures against trusted issuer keys.
+
+The app entry point shares one account/lock across windows. `AppAccess` is local device-owner protection, not remote identity. Background events lock the app; a late biometric result cannot override a newer lock. Store entry points also check the lock, so hiding a screen is not the only protection. An uncertain account deletion has a dedicated screen and blocks further account actions while the server's durable deletion job is pending.
+
+Refresh and deletion cross trust boundaries. A refresh response cannot change the subject silently, and clearing a session advances a generation counter so an in-flight exchange cannot resurrect it. Deletion jobs persist before provider calls; completion records a tombstone so an old JWT cannot recreate an account. Tests check the server's signature/claims and failure behavior, while real provider, Keychain and biometric validation still require configured accounts/devices.

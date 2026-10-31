@@ -1,0 +1,3 @@
+# Install alongside the pinned paper backend's requirements.lock.
+# PyJWT delegates signature verification to cryptography, not our application code.
+PyJWT[crypto]>=2.10.1,<3

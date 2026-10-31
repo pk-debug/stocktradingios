@@ -1,0 +1,13 @@
+# Only the gateway and pinned backend application belong in the server image.
+**
+!backend-auth/
+!backend-auth/Dockerfile
+!backend-auth/identity_gateway.py
+!backend-auth/requirements.lock
+!.backend/
+!.backend/paper-trading-api/
+!.backend/paper-trading-api/app/
+!.backend/paper-trading-api/app/**
+
+**/__pycache__/
+**/*.sqlite3

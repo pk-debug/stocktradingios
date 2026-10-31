@@ -44,3 +44,10 @@ The client uses an ephemeral URLSession, bounded deadlines, no shared response c
 Before POST, persist `{key,request}` in an origin + normalized username scoped journal. If persistence fails, do not POST. On timeout, 5xx, rate limit, expiry, decode failure or a failed post-order snapshot, retain the journal. Explicit retry reuses the same UUID and payload; the server deduplicates it. An authoritative POST rejection (400/404/409/422) clears it. A successful POST followed by a successful INR snapshot clears it only after that state can be displayed. Merely refreshing a snapshot does not discard an unresolved order. Signing out clears memory but preserves retry intent on disk for the same account after sign-in. There is no automatic money-changing retry or background queue.
 
 The store serializes UI actions; the API actor also guards against overlapping operations across suspension points. API state is never replaced with local fixture balances during a network failure.
+
+
+## Hosted JWT mode
+
+The route shapes above remain the paper-account contract. The optional [JWT gateway](../backend-auth/README.md) replaces authentication for ledger routes: it verifies the issuer's RS256 JWT and maps `(issuer, subject)` to an isolated ledger. It deliberately omits `/api/v2/auth/*`; email/social/SMS signup/login, refresh and revocation happen at the configured identity service. Do not send an Auth0 JWT to the old opaque-token server and expect it to work. Configure the gateway and mobile audience/issuer together.
+
+Hosted account deletion persists a job before calling the identity service. While unresolved, account access is suspended. A background worker retries with backoff; confirmed completion removes the ledger and records a hashed tombstone to prevent resurrection through an old JWT. Operations must monitor pending jobs and verify provider-specific revocation requirements. Ordinary order retry remains explicit and never uses this deletion worker.

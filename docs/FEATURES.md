@@ -21,4 +21,9 @@ Reference inspected: `pk-debug/kmpNativeUiTrading` at `eab65359c530f02a387c327e8
 
 Android artifacts, Compose screens and Kotlin interoperability are not needed by this iOS-only app. The domain is deliberately native Swift so it can be studied and tested independently of a Kotlin runtime.
 
-As in the reference, there is no live feed, historical chart provider, derivatives/options, margin, IPOs, SIPs, deposits, KYC, broker routing, limit/stop orders, open-order cancellation, alerts, push notifications, biometric unlock, password recovery, taxes or real fee calculation. No UI advertises those unsupported capabilities. Real execution requires a separately designed backend/broker contract, permissions, audit trail and release review.
+As in the reference, there is no live feed, historical chart provider, derivatives/options, margin, IPOs, SIPs, deposits, KYC, broker routing, limit/stop orders, open-order cancellation, alerts, push notifications, taxes or real fee calculation. No UI advertises those unsupported capabilities. Real execution requires a separately designed backend/broker contract, permissions, audit trail and release review.
+
+
+## Native identity/security extension beyond the reference
+
+This repository additionally provides an Auth0-compatible hosted email/social/SMS path, optional Google/Facebook/Apple/phone connections, Keychain-backed rotating JWT sessions, Face ID/Touch ID/device-passcode app lock, a server-side JWT verifier and durable account-deletion recovery. Hosted password recovery is configured at the provider, not implemented as a fake local endpoint. Provider registrations, callbacks, SMS delivery, management deletion credentials and Apple authorization revocation must be configured and verified before release; see [AUTHENTICATION.md](AUTHENTICATION.md).

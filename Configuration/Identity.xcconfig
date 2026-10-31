@@ -1,0 +1,13 @@
+// Public identity settings. A blank issuer leaves localhost username login enabled.
+// Choose a native/public Auth0 application. Never add client secrets to this file.
+// In xcconfig URLs, $() protects // from being treated as a comment.
+// Example issuer: https:/$()/your-tenant.example.auth0.com
+NORTHSTAR_IDENTITY_ISSUER =
+NORTHSTAR_IDENTITY_CLIENT_ID =
+NORTHSTAR_IDENTITY_AUDIENCE =
+// Set only the connections you enable in the identity-provider dashboard.
+// Typical names: google-oauth2, facebook, sms, apple.
+NORTHSTAR_CONNECTION_GOOGLE =
+NORTHSTAR_CONNECTION_FACEBOOK =
+NORTHSTAR_CONNECTION_PHONE =
+NORTHSTAR_CONNECTION_APPLE =

@@ -29,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        A20000000000000000000001 /* Identity.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Identity.xcconfig; sourceTree = SOURCE_ROOT; };
 		D404C726308273BF00F5E9D6 /* stocktradingios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = stocktradingios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D404C733308273C100F5E9D6 /* stocktradingiosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = stocktradingiosTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D404C73D308273C100F5E9D6 /* stocktradingiosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = stocktradingiosUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,6 +77,7 @@
 		D404C71D308273BF00F5E9D6 = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000001 /* Identity.xcconfig */,
 				D404C728308273BF00F5E9D6 /* stocktradingios */,
 				D404C736308273C100F5E9D6 /* stocktradingiosTests */,
 				D404C740308273C100F5E9D6 /* stocktradingiosUITests */,
@@ -376,6 +378,7 @@
 		};
 		D404C746308273C100F5E9D6 /* Debug configuration for PBXNativeTarget "stocktradingios" */ = {
 			isa = XCBuildConfiguration;
+            baseConfigurationReference = A20000000000000000000001 /* Identity.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -391,6 +394,14 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_NORTHSTAR_API_ORIGIN = "$(NORTHSTAR_API_ORIGIN)";
 				INFOPLIST_KEY_CFBundleDisplayName = Northstar;
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_ISSUER = "$(NORTHSTAR_IDENTITY_ISSUER)";
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_CLIENT_ID = "$(NORTHSTAR_IDENTITY_CLIENT_ID)";
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_AUDIENCE = "$(NORTHSTAR_IDENTITY_AUDIENCE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_GOOGLE = "$(NORTHSTAR_CONNECTION_GOOGLE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_FACEBOOK = "$(NORTHSTAR_CONNECTION_FACEBOOK)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_PHONE = "$(NORTHSTAR_CONNECTION_PHONE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_APPLE = "$(NORTHSTAR_CONNECTION_APPLE)";
+
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -410,6 +421,7 @@
 		};
 		D404C747308273C100F5E9D6 /* Release configuration for PBXNativeTarget "stocktradingios" */ = {
 			isa = XCBuildConfiguration;
+            baseConfigurationReference = A20000000000000000000001 /* Identity.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -418,11 +430,20 @@
 				DEVELOPMENT_TEAM = 53S3R83AHH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_FILE = Configuration/ReleaseInfo.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_NORTHSTAR_API_ORIGIN = "$(NORTHSTAR_API_ORIGIN)";
 				INFOPLIST_KEY_CFBundleDisplayName = Northstar;
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_ISSUER = "$(NORTHSTAR_IDENTITY_ISSUER)";
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_CLIENT_ID = "$(NORTHSTAR_IDENTITY_CLIENT_ID)";
+                INFOPLIST_KEY_NORTHSTAR_IDENTITY_AUDIENCE = "$(NORTHSTAR_IDENTITY_AUDIENCE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_GOOGLE = "$(NORTHSTAR_CONNECTION_GOOGLE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_FACEBOOK = "$(NORTHSTAR_CONNECTION_FACEBOOK)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_PHONE = "$(NORTHSTAR_CONNECTION_PHONE)";
+                INFOPLIST_KEY_NORTHSTAR_CONNECTION_APPLE = "$(NORTHSTAR_CONNECTION_APPLE)";
+
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

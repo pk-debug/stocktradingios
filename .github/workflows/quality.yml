@@ -1,3 +1,4 @@
+# Automated regression checks; successful workflow execution is separate from App Store signing or publication.
 name: Native iOS quality
 on:
   pull_request:
@@ -22,7 +23,12 @@ jobs:
           repository: pk-debug/northstar-backend-lab
           ref: 7bac27ca60fe799a40ec9a11bec7b04d8ff78317
           path: .backend
-      - run: pip install -r .backend/paper-trading-api/requirements.lock
+      - name: Install the tested backend and identity dependencies
+        run: pip install -r backend-auth/requirements.lock
+      - name: Verify server JWT security and release guard
+        run: |
+          PYTHONPATH=backend-auth:.backend/paper-trading-api pytest -q backend-auth/tests
+          python3 -m unittest discover -s scripts/tests
       - name: Start disposable backend and test real Swift HTTP client
         shell: bash
         run: |
